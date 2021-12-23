@@ -11,6 +11,7 @@ type Task struct {
 	workers    map[string]Worker
 	chanLength int
 	wg         sync.WaitGroup
+	name       string
 }
 type PrintLogFunc func(format string, v ...interface{})
 
@@ -28,11 +29,12 @@ type Worker interface {
 	PrintLog(format string, v ...interface{})
 }
 
-func NewTask(chanLength int) *Task {
+func NewTask(chanLength int, taskName string) *Task {
 	return &Task{
 		workers:    make(map[string]Worker),
 		chanLength: chanLength,
 		wg:         sync.WaitGroup{},
+		name:       taskName,
 	}
 }
 
@@ -72,13 +74,17 @@ func (t *Task) CloseWorker(name string) {
 	delete(t.workers, name)
 }
 
+func (t *Task) GetName() string {
+	return t.name
+}
+
 func (t *Task) Run() {
-	logger.Println("开始任务！")
+	logger.Println("开始任务! ", t.name)
 	// 多线程开始所有工作者
 	for _, worker := range t.workers {
 		worker.PrintLog("开始执行！")
 		go worker.Start()
 	}
 	t.wg.Wait()
-	logger.Println("任务完成！")
+	logger.Println("任务完成! ", t.name)
 }
