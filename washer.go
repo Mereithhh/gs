@@ -1,7 +1,6 @@
 package gs
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/mereithhh/gs/logger"
@@ -18,10 +17,14 @@ type Washer struct {
 	washFunc WashFunc
 	// 等待池子
 	wg *sync.WaitGroup
+	// 任务名称
+	taskName string
+	// logger
+	logger *logger.Logger
 }
 type WashFunc func(inputChans map[string]chan interface{}, outputChan chan interface{}, printLogFunc PrintLogFunc)
 
-func (t *Task) NewWasher(name string, washFunc WashFunc, inputWorkerNames []string, wg *sync.WaitGroup) *Washer {
+func (t *Task) NewWasher(name string, washFunc WashFunc, inputWorkerNames []string, wg *sync.WaitGroup, taskName string, logger *logger.Logger) *Washer {
 	// 找 input worker 的 name
 	// var inputChans map[string]chan interface{}
 	inputChans := make(map[string]chan interface{})
@@ -38,6 +41,8 @@ func (t *Task) NewWasher(name string, washFunc WashFunc, inputWorkerNames []stri
 		outputChan: make(chan interface{}, t.chanLength),
 		washFunc:   washFunc,
 		wg:         wg,
+		taskName:   taskName,
+		logger:     logger,
 	}
 }
 
@@ -47,7 +52,7 @@ func (w *Washer) GetName() string {
 
 func (w *Washer) Start() {
 	w.washFunc(w.inputChans, w.outputChan, w.PrintLog)
-	w.PrintLog("完成！")
+	// w.PrintLog("完成！")
 	close(w.outputChan)
 	w.wg.Done()
 }
@@ -59,8 +64,6 @@ func (w *Washer) GetOutputChan() chan interface{} {
 func (w *Washer) GetWorkerType() string {
 	return "Washer"
 }
-func (w *Washer) PrintLog(format string, v ...interface{}) {
-	prefix := fmt.Sprintf("[%s][%s]:", w.GetWorkerType(), w.GetName())
-	f := prefix + format
-	logger.Printf(f, v...)
+func (i *Washer) PrintLog(format string, v ...interface{}) {
+	i.logger.SetWorkerLine(i.taskName, i.GetWorkerType(), i.GetName(), format, v...)
 }

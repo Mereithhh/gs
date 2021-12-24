@@ -1,7 +1,6 @@
 package gs
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/mereithhh/gs/logger"
@@ -16,10 +15,14 @@ type Outputer struct {
 	outputFunc OutputFunc
 	// 等待池子
 	wg *sync.WaitGroup
+	// 任务名称
+	taskName string
+	// logger
+	logger *logger.Logger
 }
 type OutputFunc func(inputChan chan interface{}, printLogFunc PrintLogFunc)
 
-func (t *Task) NewOutputer(name string, outputFunc OutputFunc, inputWorkerName string, wg *sync.WaitGroup) *Outputer {
+func (t *Task) NewOutputer(name string, outputFunc OutputFunc, inputWorkerName string, wg *sync.WaitGroup, taskName string, logger *logger.Logger) *Outputer {
 	// 找 input worker 的 name
 	inputWorker := t.getWorker(inputWorkerName)
 	return &Outputer{
@@ -27,6 +30,8 @@ func (t *Task) NewOutputer(name string, outputFunc OutputFunc, inputWorkerName s
 		inputChan:  inputWorker.GetOutputChan(),
 		outputFunc: outputFunc,
 		wg:         wg,
+		taskName:   taskName,
+		logger:     logger,
 	}
 }
 
@@ -34,8 +39,9 @@ func (o *Outputer) GetName() string {
 	return o.name
 }
 func (o *Outputer) Start() {
+	// start := time.Now()
 	o.outputFunc(o.inputChan, o.PrintLog)
-	o.PrintLog("完成！")
+	// o.PrintLog("完成！用时：")
 	o.wg.Done()
 }
 func (o *Outputer) GetOutputChan() chan interface{} {
@@ -44,8 +50,6 @@ func (o *Outputer) GetOutputChan() chan interface{} {
 func (o *Outputer) GetWorkerType() string {
 	return "Outputer"
 }
-func (o *Outputer) PrintLog(format string, v ...interface{}) {
-	prefix := fmt.Sprintf("[%s][%s]:", o.GetWorkerType(), o.GetName())
-	f := prefix + format
-	logger.Printf(f, v...)
+func (i *Outputer) PrintLog(format string, v ...interface{}) {
+	i.logger.SetWorkerLine(i.taskName, i.GetWorkerType(), i.GetName(), format, v...)
 }
