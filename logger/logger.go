@@ -86,7 +86,7 @@ func (l *Logger) Close() {
 	l.lock.Lock()
 	length := len(l.keys)
 	toPrint := ""
-	for i := 0; i < length; i++ {
+	for i := length - 1; i > -1; i-- {
 		key := l.keys[i]
 		val := l.lines[key]
 		toPrint = toPrint + val + "\n"
